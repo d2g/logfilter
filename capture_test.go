@@ -1,20 +1,65 @@
-package logfilter
+package logfilter_test
 
 import (
 	"bytes"
+	"io"
 	"log"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/d2g/logfilter"
 )
+
+// capture the content written by f to os.Stderr
+func captureStandardErr(f func()) (out string, err error) {
+	// Capture stdout.
+	stderr := os.Stderr
+	r, w, err := os.Pipe()
+	if err != nil {
+		return
+	}
+
+	os.Stderr = w
+	defer func() {
+		os.Stderr = stderr
+	}()
+
+	capturedOutput := make(chan string)
+	errorChannel := make(chan error)
+
+	go func() {
+		buf := new(bytes.Buffer)
+		_, err := io.Copy(buf, r)
+		r.Close()
+		if err != nil {
+			errorChannel <- err
+		}
+
+		capturedOutput <- buf.String()
+	}()
+
+	//FUNCTION
+	f()
+	err = w.Close()
+	if err != nil {
+		return
+	}
+
+	select {
+	case out = <-capturedOutput:
+	case err = <-errorChannel:
+	}
+	return
+}
 
 func TestParseMessage(test *testing.T) {
 
-	example := Capture{}
+	example := logfilter.Capture{}
 
-	reference := Line{
+	reference := logfilter.Line{
 		Message: "Message",
-		Level:   DEBUG,
+		Level:   logfilter.DEBUG,
 	}
 
 	line := example.Parse("Debug: Message")
@@ -24,21 +69,21 @@ func TestParseMessage(test *testing.T) {
 	}
 
 	line = example.Parse("Warning: Message")
-	reference.Level = WARNING
+	reference.Level = logfilter.WARNING
 
 	if !line.Equal(reference) {
 		test.Errorf("Parsing Error")
 	}
 
 	line = example.Parse("Error: Message")
-	reference.Level = ERROR
+	reference.Level = logfilter.ERROR
 
 	if !line.Equal(reference) {
 		test.Errorf("Parsing Error")
 	}
 
 	line = example.Parse("Fatal: Message")
-	reference.Level = FATAL
+	reference.Level = logfilter.FATAL
 
 	if !line.Equal(reference) {
 		test.Errorf("Parsing Error")
@@ -46,16 +91,16 @@ func TestParseMessage(test *testing.T) {
 }
 
 func TestParseMessageTime(test *testing.T) {
-	example := Capture{}
+	example := logfilter.Capture{}
 	example.Flags = log.Ltime
 
 	line := example.Parse("14:45:45 INFO: Message")
 	t, _ := time.Parse("15:04:05", "14:45:45")
 
-	parsedline := Line{
+	parsedline := logfilter.Line{
 		Timestamp: t,
 		Message:   "Message",
-		Level:     INFO,
+		Level:     logfilter.INFO,
 	}
 
 	if !line.Equal(parsedline) {
@@ -64,18 +109,18 @@ func TestParseMessageTime(test *testing.T) {
 }
 
 func TestParseMessageTimeShortFilename(test *testing.T) {
-	example := Capture{
+	example := logfilter.Capture{
 		Flags: (log.Ltime | log.Lshortfile),
 	}
 
 	line := example.Parse("14:45:45 main.go:156: Trace: Message")
 	t, _ := time.Parse("15:04:05", "14:45:45")
 
-	parsedline := Line{
+	parsedline := logfilter.Line{
 		Timestamp:   t,
 		FileAndLine: "main.go:156",
 		Message:     "Message",
-		Level:       TRACE,
+		Level:       logfilter.TRACE,
 	}
 
 	if !line.Equal(parsedline) {
@@ -85,18 +130,18 @@ func TestParseMessageTimeShortFilename(test *testing.T) {
 
 func TestParseMessageDateTimeLongFilename(test *testing.T) {
 
-	example := Capture{
+	example := logfilter.Capture{
 		Flags: (log.Ldate | log.Ltime | log.Llongfile),
 	}
 
 	line := example.Parse("2014/10/03 14:45:45 C:/Go/src/github.com/d2g/logfilter/main.go:155: Trace: Message")
 	t, _ := time.Parse("2006/01/02 15:04:05", "2014/10/03 14:45:45")
 
-	parsedline := Line{
+	parsedline := logfilter.Line{
 		Timestamp:   t,
 		FileAndLine: "C:/Go/src/github.com/d2g/logfilter/main.go:155",
 		Message:     "Message",
-		Level:       TRACE,
+		Level:       logfilter.TRACE,
 	}
 
 	if !line.Equal(parsedline) {
@@ -111,7 +156,7 @@ func TestWriter(test *testing.T) {
 
 	log.SetFlags(0)
 
-	log.SetOutput(&Capture{
+	log.SetOutput(&logfilter.Capture{
 		Flags:  log.Flags(),
 		Output: &b,
 	})
@@ -130,14 +175,14 @@ func TestWriterExclude(test *testing.T) {
 
 	log.SetFlags((log.Ldate | log.Ltime | log.Llongfile))
 
-	log.SetOutput(&Capture{
+	log.SetOutput(&logfilter.Capture{
 		Flags:  log.Flags(),
 		Output: &b,
-		Filters: []Filter{
-			Filter{
-				Mode:     EXCLUDE,
+		Filters: []logfilter.Filter{
+			logfilter.Filter{
+				Mode:     logfilter.EXCLUDE,
 				Filename: "github.com/d2g/logfilter",
-				Level:    TRACE,
+				Level:    logfilter.TRACE,
 			},
 		},
 	})
@@ -160,19 +205,19 @@ func TestWriterExcludeInclude(test *testing.T) {
 
 	log.SetFlags((log.Ldate | log.Ltime | log.Llongfile))
 
-	log.SetOutput(&Capture{
+	log.SetOutput(&logfilter.Capture{
 		Flags:  log.Flags(),
 		Output: &b,
-		Filters: []Filter{
-			Filter{
-				Mode:     EXCLUDE,
+		Filters: []logfilter.Filter{
+			logfilter.Filter{
+				Mode:     logfilter.EXCLUDE,
 				Filename: "github.com/d2g/",
-				Level:    FATAL,
+				Level:    logfilter.FATAL,
 			},
-			Filter{
-				Mode:     INCLUDE,
+			logfilter.Filter{
+				Mode:     logfilter.INCLUDE,
 				Filename: "github.com/d2g/logfilter",
-				Level:    DEBUG,
+				Level:    logfilter.DEBUG,
 			},
 		},
 	})
@@ -190,8 +235,8 @@ func TestWriterExcludeInclude(test *testing.T) {
 }
 
 func TestLineEquals(test *testing.T) {
-	e1 := Line{}
-	e2 := Line{}
+	e1 := logfilter.Line{}
+	e2 := logfilter.Line{}
 
 	t, _ := time.Parse("2006/01/02 15:04:05", "2014/10/03 14:45:45")
 
@@ -229,7 +274,7 @@ func TestLineEquals(test *testing.T) {
 		test.Errorf("Equals Failed")
 	}
 
-	e2.Level = INFO
+	e2.Level = logfilter.INFO
 
 	if e1.Equal(e2) {
 		test.Errorf("Equals Failed")
@@ -244,18 +289,25 @@ func TestLineEquals(test *testing.T) {
 }
 
 func TestWriteToOSStderr(t *testing.T) {
-	example := Capture{}
+	example := logfilter.Capture{}
+	message := "Debug: Message\n"
 
-	os.Stderr = os.Stdout
+	output, err := captureStandardErr(func() {
+		n, err := example.Write([]byte(message))
+		if err != nil {
+			t.Errorf("Write Failed")
+		}
 
-	n, err := example.Write([]byte("Debug: Message\n"))
+		if n != len([]byte("Debug: Message\n")) {
+			t.Errorf("Write Failed, Incorrect Length")
+		}
+	})
+
 	if err != nil {
-		t.Errorf("Write Failed")
+		t.Errorf("Error Capturing StandardErr %v\n", err)
 	}
 
-	if n != len([]byte("Debug: Message\n")) {
-		t.Errorf("Write Failed, Incorrect Length")
+	if output != message {
+		t.Errorf("StandardErr expect %s got %s\n", message, output)
 	}
-
-	// Output: Debug: Message
 }
