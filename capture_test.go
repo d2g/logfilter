@@ -6,9 +6,11 @@ import (
 	"log"
 	"os"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/d2g/logfilter"
+	"github.com/d2g/logfilter/dummy"
 )
 
 // capture the content written by f to os.Stderr
@@ -310,4 +312,55 @@ func TestWriteToOSStderr(t *testing.T) {
 	if output != message {
 		t.Errorf("StandardErr expect %s got %s\n", message, output)
 	}
+}
+
+//Examples
+func ExampleCapture() {
+
+	// Set our filters, log.Llongfile is important here or we don't get the filename
+	// to filter on.
+	log.SetFlags(log.Llongfile | log.Ldate | log.Ltime)
+
+	// Setup our log filter.
+	log.SetOutput(&logfilter.Capture{
+		Flags: log.Flags(),
+		Filters: []logfilter.Filter{
+			logfilter.Filter{ // Exclude all our messages
+				Mode:     logfilter.EXCLUDE,
+				Filename: "github.com/d2g/logfilter",
+				Level:    logfilter.FATAL,
+			},
+			logfilter.Filter{ // Include Fatal Messages Only
+				Mode:     logfilter.INCLUDE,
+				Filename: "github.com/d2g/logfilter/dummy",
+				Level:    logfilter.WARNING,
+			},
+		},
+		Output: os.Stdout,
+		Formatter: func(l *logfilter.Line) []byte {
+			t := template.Must(template.New("format").Parse(`{{.Message}}`))
+			b := bytes.NewBuffer([]byte{})
+			err := t.Execute(b, *l)
+			if err != nil {
+				panic("Panic Template Error:" + err.Error())
+			}
+
+			return b.Bytes()
+		},
+	})
+
+	dummy.Fatal()   // Create a dummy message.
+	dummy.Error()   // Create a dummy Error message.
+	dummy.Warning() // Create a dummy Warning message.
+	dummy.Info()    // Create a dummy Info message that should be ignored.
+	dummy.Debug()   // Create a dummy degub message that should be ignored.
+	dummy.Trace()   // Create a dummy trace message that should be ignored.
+
+	dummy.Unformatted() //Unformatted messages appear as trace messages.
+
+	//Output:
+	//This is a Fatal message
+	//This is a Error message
+	//This is a Warning message
+	//Some package that doesn't implement the convention.
 }

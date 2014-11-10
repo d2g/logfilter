@@ -9,9 +9,10 @@ import (
 )
 
 type Capture struct {
-	Flags   int
-	Output  io.Writer
-	Filters []Filter
+	Flags     int
+	Output    io.Writer
+	Filters   []Filter
+	Formatter func(*Line) []byte
 }
 
 func (t *Capture) Parse(p string) (l *Line) {
@@ -104,6 +105,11 @@ func (t *Capture) Write(p []byte) (int, error) {
 	}
 
 	if writeout {
+		// Format the messages
+		if t.Formatter != nil {
+			p = t.Formatter(l)
+		}
+
 		if t.Output != nil {
 			return t.Output.Write([]byte(p))
 		} else {
