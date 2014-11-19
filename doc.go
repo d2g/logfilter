@@ -1,7 +1,3 @@
-// Copyright 2012 The Gorilla Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 /*
 Package d2g/logfilter implements a filter on the standard log package.
 
@@ -66,6 +62,5 @@ func main() {
 
 In the example above the Output: os.Stderr does nothing (As this is the default)
 however it shows how you would set the output should you require.
-
 */
 package logfilter

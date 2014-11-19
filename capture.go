@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// Capture implements io.Write to capture logging output prior to filtering/output.
 type Capture struct {
 	Flags     int
 	Output    io.Writer
@@ -15,6 +16,7 @@ type Capture struct {
 	Formatter func(*Line) []byte
 }
 
+// Parse the captured string into a Line structure.
 func (t *Capture) Parse(p string) (l *Line) {
 	l = &Line{}
 
@@ -78,6 +80,7 @@ func (t *Capture) Parse(p string) (l *Line) {
 	return
 }
 
+// Implement the io.Writer to capture the message being written to log.
 func (t *Capture) Write(p []byte) (int, error) {
 	l := t.Parse(string(p))
 
@@ -112,9 +115,9 @@ func (t *Capture) Write(p []byte) (int, error) {
 
 		if t.Output != nil {
 			return t.Output.Write([]byte(p))
-		} else {
-			return os.Stderr.Write([]byte(p))
 		}
+
+		return os.Stderr.Write([]byte(p))
 	}
 
 	return 0, io.EOF
