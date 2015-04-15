@@ -92,7 +92,7 @@ func (f filters) When(l Level) {
 //StdFilterReset resets the filters being applied, which is useful for testing.
 func StdFilterReset() {
 	stdFilters = filters([]*filter{
-		&filter{
+		{
 			find:      "",
 			inclusive: true,
 			lvl:       Undefined,
