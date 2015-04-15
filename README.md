@@ -47,14 +47,6 @@ messages:
 	)
 	
 	func main() {
-		//Remove date time to make testing simpler.
-		//I doubt you would want to use this usually.
-		logfilter.SetFlags(log.Lshortfile)
-	
-		//Set the Output to stdout for the example test.
-		//By default this is os.Stderr so you wouldn't usually need this line.
-		logfilter.SetOutput(os.Stdout)
-	
 		// Change the default filter to warning and above.
 		logfilter.Default(logfilter.Warning)
 	
