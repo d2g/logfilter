@@ -3,18 +3,18 @@ Package d2g/logfilter implements a filter on the standard log package.
 
 Like most alternative logging packages using this package support the semi
 standard logging levels like:
-	TRACE
-	DEBUG
-	INFO
-	WARNING
-	ERROR
-	FATAL
+	Trace
+	Debug
+	Info
+	Warning
+	Error
+	Fatal
 
 Unlike other packages log filter doesn't require the package to specifically
 import an additional package over the standard logging package. It does however
-require them to follow the same convention.
+require them to follow a convention.
 
-The convention is:
+The default convention is:
 
 log.Println("<Level>:<Message>")
 
@@ -33,34 +33,40 @@ and the log level type.
 For example in your live application you may only want to output warning
 messages:
 
+import(
+	"log"
+	"github.com/d2g/logfilter"
+	"github.com/d2g/logfilter/dummy"
+)
+
+
 func main() {
-	// Set the log message output. We can only filter on the fields output so
-	// it's important to output the Llongfile.
-	log.SetFlags(log.Llongfile | log.Ldate | log.Ltime)
+	//Remove date time to make testing simpler.
+	//I doubt you would want to use this usually.
+	logfilter.SetFlags(log.Lshortfile)
 
-	log.SetOutput(&logfilter.Capture{
-		Flags:   log.Flags(), // We have to pass the log.Flags() here otherwise we get stuck in a loop.
-		Filters: []logfilter.Filter{ //Add our Filters
-		logfilter.Filter{ // Filter Out log messages from my packages except warning or above.
-			Mode:     logfilter.EXCLUDE,
-			Filename: "github.com/d2g/",
-			Level:    logfilter.WARNING,
-		},
-		logfilter.Filter{ // Filter In Trace, Debug, Info from the package github.com/d2g/dhcp4server.
-			Mode:     logfilter.INCLUDE,
-			Filename: "github.com/d2g/dhcp4server",
-			Level:    logfilter.TRACE,
-		},
-		},
-		Output: os.Stderr, //Set the output to an implementaion of io.Writer (Stderr as default)
-	})
+	//Set the Output to stdout for the example test.
+	//By defult this is os.Stderr so you wouldn't usually need this line.
+	logfilter.SetOutput(os.Stdout)
 
-	// Now only log level WARNING and above will be written for packages staring
-	// "github.com/d2g/" except "github.com/d2g/dhcp4server" which will output
-	// all messages.
+	// Change the default filter to warning and above.
+	logfilter.Default(logfilter.Warning)
+
+	// I want to debug an issue in a particular package so want logging from that package.
+	logfilter.Include("github.com/d2g/logfilter/dummy")
+
+	// However at this stage I want only Info and above.
+	logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Info)
+
+	// Now only log level Warning and above will be written
+	// Except for github.com/d2g/dummy which wil have Info and above.
+	log.Println("Debug: Not Displayed")
+	dummy.Debug()
+	dummy.Info()
+
+	//Output:
+	//dummy.go:17: Info: This is a Info message
 }
 
-In the example above the Output: os.Stderr does nothing (As this is the default)
-however it shows how you would set the output should you require.
 */
 package logfilter

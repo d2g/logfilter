@@ -2,192 +2,269 @@ package logfilter_test
 
 import (
 	"bytes"
-	"io"
 	"log"
 	"os"
 	"testing"
-	"text/template"
 	"time"
 
 	"github.com/d2g/logfilter"
 	"github.com/d2g/logfilter/dummy"
 )
 
-// capture the content written by f to os.Stderr
-func captureStandardErr(f func()) (out string, err error) {
-	// Capture stdout.
-	stderr := os.Stderr
-	r, w, err := os.Pipe()
-	if err != nil {
-		return
+func TestStringToLevel(t *testing.T) {
+
+	//String to Level Function
+	if logfilter.Undefined != logfilter.StringToLevel("skjcksakj") ||
+		logfilter.Trace != logfilter.StringToLevel("trace") ||
+		logfilter.Debug != logfilter.StringToLevel("debug") ||
+		logfilter.Info != logfilter.StringToLevel("INFO") ||
+		logfilter.Warning != logfilter.StringToLevel("Warning") ||
+		logfilter.Error != logfilter.StringToLevel("error") ||
+		logfilter.Fatal != logfilter.StringToLevel("Fatal") ||
+		logfilter.Off != logfilter.StringToLevel("Off") {
+		t.Errorf("Error Converting String to Log Level")
 	}
 
-	os.Stderr = w
-	defer func() {
-		os.Stderr = stderr
-	}()
+}
 
-	capturedOutput := make(chan string)
-	errorChannel := make(chan error)
+func TestLevelToString(t *testing.T) {
+	//Level to String Function
+	if "Undefined" != logfilter.LevelToString(logfilter.Undefined) ||
+		"Trace" != logfilter.LevelToString(logfilter.Trace) ||
+		"Debug" != logfilter.LevelToString(logfilter.Debug) ||
+		"Info" != logfilter.LevelToString(logfilter.Info) ||
+		"Warning" != logfilter.LevelToString(logfilter.Warning) ||
+		"Error" != logfilter.LevelToString(logfilter.Error) ||
+		"Fatal" != logfilter.LevelToString(logfilter.Fatal) ||
+		"Off" != logfilter.LevelToString(logfilter.Off) {
+		t.Errorf("Error Converting Log Level to String")
+	}
+}
 
-	go func() {
-		buf := new(bytes.Buffer)
-		_, err := io.Copy(buf, r)
-		r.Close()
-		if err != nil {
-			errorChannel <- err
+func TestStdParser(t *testing.T) {
+	//Std Parser
+	level, message := logfilter.StdParser("Debug: Message")
+	if level != logfilter.Debug || message != "Message" {
+		t.Errorf("Standard Parsing Error: Expected %v Message got %v %s", logfilter.Debug, level, message)
+	}
+
+	level, message = logfilter.StdParser("Message")
+	if level != logfilter.Undefined || message != "Message" {
+		t.Errorf("Standard Parsing Error: Expected %v Message got %v %s", logfilter.Undefined, level, message)
+	}
+}
+
+func TestSqrParser(t *testing.T) {
+	//Sqr Parser
+	level, message := logfilter.SqrParser("[Debug] Message")
+	if level != logfilter.Debug || message != "Message" {
+		t.Errorf("Square Parsing Error: Expected %v Message got %v %s", logfilter.Debug, level, message)
+	}
+
+	level, message = logfilter.SqrParser("Message")
+	if level != logfilter.Undefined || message != "Message" {
+		t.Errorf("Square Parsing Error: Expected %v Message got %v %s", logfilter.Undefined, level, message)
+	}
+}
+
+func TestStringToLogLine(t *testing.T) {
+	//Our Standard Message should look like
+	l := logfilter.StringToLogLine("2009/01/23 01:23:23.123123 /a/b/c/d.go:23: debug: message")
+
+	if l.Level != logfilter.Undefined &&
+		l.File != "/a/b/c/d.go" &&
+		l.Line != 23 &&
+		l.Message != "debug: message" &&
+		l.Timestamp.Format("2006/01/02 15:04:05.999999") != "2009/01/23 01:23:23.123123" {
+		t.Errorf("Expected 2009/01/23 01:23:23.123123 /a/b/c/d.go:23: debug: message actual %s %s:%s: %s", l.Timestamp.Format("2006/01/02 15:04:05.999999"), l.File, l.Line, l.Message)
+	}
+}
+
+func TestStdFormat(t *testing.T) {
+	l := logfilter.LogLine{
+		File:    "/a/b/c/d.go",
+		Line:    23,
+		Message: "message",
+		Level:   logfilter.Debug,
+	}
+	var err error
+	l.Timestamp, err = time.Parse("2006/01/02 15:04:05.999999", "2009/01/23 01:23:23.123123")
+	if err != nil {
+		t.Errorf("Error Creating Dummy Time How Strange??")
+	}
+
+	b := logfilter.StdFormat("", &l, log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	e := "2009/01/23 01:23:23.123123 d.go:23: Debug: message"
+	if !bytes.Equal([]byte(e), b) {
+		t.Errorf("Standard Format Expected \"%s\" Actual \"%s\"", e, string(b))
+	}
+}
+
+func TestSqrFormat(t *testing.T) {
+	l := logfilter.LogLine{
+		File:    "/a/b/c/d.go",
+		Line:    23,
+		Message: "message",
+		Level:   logfilter.Debug,
+	}
+	var err error
+	l.Timestamp, err = time.Parse("2006/01/02 15:04:05.999999", "2009/01/23 01:23:23.123123")
+	if err != nil {
+		t.Errorf("Error Creating Dummy Time How Strange??")
+	}
+
+	b := logfilter.SqrFormat("", &l, log.Ldate|log.Lmicroseconds|log.Lshortfile)
+	e := "2009/01/23 01:23:23.123123 d.go:23: [Debug] message"
+	if !bytes.Equal([]byte(e), b) {
+		t.Errorf("Standard Format Expected \"%s\" Actual \"%s\"", e, string(b))
+	}
+}
+
+func TestNew(t *testing.T) {
+	p := "prefix"
+	l := logfilter.New(os.Stdout, p, log.Ldate)
+
+	if l.Output() != os.Stdout {
+		t.Errorf("Invalid Output expected %#v, actual %#v", os.Stdout, l.Output())
+	}
+
+	if l.Prefix() != p {
+		t.Errorf("Invalid Prefix expected %d, actual %d", p, l.Prefix())
+	}
+
+	if l.Flags() != log.Ldate {
+		t.Errorf("Invalid Flags expected %d, actual %d", log.Ldate, l.Flags())
+	}
+}
+
+func TestStd(t *testing.T) {
+
+	//Prefix
+	p := "Test Prefix"
+	logfilter.SetPrefix(p)
+	if logfilter.Prefix() != p {
+		t.Errorf("Std Prefix expected %s, actual %s", p, logfilter.Prefix())
+	}
+	logfilter.SetPrefix("")
+
+	//Parsers
+	logfilter.SetParsers([]logfilter.Parser{logfilter.SqrParser, logfilter.StdParser})
+	ps := logfilter.Parsers()
+	if len(ps) != 2 {
+		t.Errorf("Error setting parser expected %d, actual %d", 2, len(ps))
+	}
+
+	//Flags
+	logfilter.SetFlags(log.Lmicroseconds)
+	f := logfilter.Flags()
+	if f != log.Lmicroseconds {
+		t.Errorf("Error setting flags expected %d, actual %d", log.Lmicroseconds, f)
+	}
+	logfilter.SetFlags(log.LstdFlags)
+
+	//Output
+	logfilter.SetOutput(os.Stdout)
+	if logfilter.Output() != os.Stdout {
+		t.Errorf("Std Output invalid expected %#v, actual %#v", os.Stdout, logfilter.Output())
+	}
+	logfilter.SetOutput(os.Stderr)
+
+}
+
+func TestFilterFunc(t *testing.T) {
+	f := func(l *logfilter.LogLine) bool {
+		if l.Message == "true" {
+			return true
 		}
-
-		capturedOutput <- buf.String()
-	}()
-
-	//FUNCTION
-	f()
-	err = w.Close()
-	if err != nil {
-		return
+		return false
 	}
 
-	select {
-	case out = <-capturedOutput:
-	case err = <-errorChannel:
+	logfilter.SetFilterFunc(f)
+	l := logfilter.LogLine{
+		Message: "true",
 	}
-	return
+
+	b := logfilter.FilterFunc()(&l)
+	if !b {
+		t.Errorf("Error setting filter function expected %t, actual %t", true, b)
+	}
+
+	l.Message = "false"
+	b = logfilter.FilterFunc()(&l)
+	if b {
+		t.Errorf("Error setting filter function expected %t, actual %t", false, b)
+	}
+
+	logfilter.SetFilterFunc(logfilter.StdFilter)
 }
 
-func TestParseMessage(test *testing.T) {
-
-	example := logfilter.Capture{}
-
-	reference := logfilter.Line{
-		Message: "Message",
-		Level:   logfilter.DEBUG,
+func TestFormatter(t *testing.T) {
+	f := func(s string, l *logfilter.LogLine, i int) []byte {
+		return []byte("TEST")
 	}
 
-	line := example.Parse("Debug: Message")
+	cf := logfilter.Formatter()
 
-	if !line.Equal(reference) {
-		test.Errorf("Parsing Error")
+	logfilter.SetFormatter(f)
+	b := logfilter.Formatter()("", &logfilter.LogLine{}, 0)
+	if !bytes.Equal(b, []byte("TEST")) {
+		t.Errorf("Error setting formatter function expected %s, actual %t", "TEST", string(b))
 	}
 
-	line = example.Parse("Warning: Message")
-	reference.Level = logfilter.WARNING
-
-	if !line.Equal(reference) {
-		test.Errorf("Parsing Error")
-	}
-
-	line = example.Parse("Error: Message")
-	reference.Level = logfilter.ERROR
-
-	if !line.Equal(reference) {
-		test.Errorf("Parsing Error")
-	}
-
-	line = example.Parse("Fatal: Message")
-	reference.Level = logfilter.FATAL
-
-	if !line.Equal(reference) {
-		test.Errorf("Parsing Error")
-	}
+	logfilter.SetFormatter(cf)
 }
 
-func TestParseMessageTime(test *testing.T) {
-	example := logfilter.Capture{}
-	example.Flags = log.Ltime
+func TestEqual(t *testing.T) {
+	n := time.Now()
 
-	line := example.Parse("14:45:45 INFO: Message")
-	t, _ := time.Parse("15:04:05", "14:45:45")
-
-	parsedline := logfilter.Line{
-		Timestamp: t,
-		Message:   "Message",
-		Level:     logfilter.INFO,
+	l1 := logfilter.LogLine{
+		Timestamp: n,
+		File:      "file",
+		Line:      0,
+		Message:   "message",
+		Level:     logfilter.Undefined,
 	}
 
-	if !line.Equal(parsedline) {
-		test.Errorf("Parsing Error Parsed Message:%v\n", line)
-	}
-}
-
-func TestParseMessageTimeShortFilename(test *testing.T) {
-	example := logfilter.Capture{
-		Flags: (log.Ltime | log.Lshortfile),
+	l2 := logfilter.LogLine{
+		Timestamp: n,
+		File:      "file",
+		Line:      0,
+		Message:   "message",
+		Level:     logfilter.Undefined,
 	}
 
-	line := example.Parse("14:45:45 main.go:156: Trace: Message")
-	t, _ := time.Parse("15:04:05", "14:45:45")
-
-	parsedline := logfilter.Line{
-		Timestamp:   t,
-		FileAndLine: "main.go:156",
-		Message:     "Message",
-		Level:       logfilter.TRACE,
+	if !l1.Equal(l2) {
+		t.Errorf("Error comparing equal lines not equal LogLine#1 %v, LogLine#2 %v", l1, l2)
 	}
 
-	if !line.Equal(parsedline) {
-		test.Errorf("Parsing Error Parsed Message:%v\n", line)
-	}
-}
-
-func TestParseMessageDateTimeLongFilename(test *testing.T) {
-
-	example := logfilter.Capture{
-		Flags: (log.Ldate | log.Ltime | log.Llongfile),
-	}
-
-	line := example.Parse("2014/10/03 14:45:45 C:/Go/src/github.com/d2g/logfilter/main.go:155: Trace: Message")
-	t, _ := time.Parse("2006/01/02 15:04:05", "2014/10/03 14:45:45")
-
-	parsedline := logfilter.Line{
-		Timestamp:   t,
-		FileAndLine: "C:/Go/src/github.com/d2g/logfilter/main.go:155",
-		Message:     "Message",
-		Level:       logfilter.TRACE,
-	}
-
-	if !line.Equal(parsedline) {
-		test.Errorf("Parsing Error Parsed Message:%v\n", line)
+	l2.Message = "not equal"
+	if l1.Equal(l2) {
+		t.Errorf("Error comparing non equal lines equal LogLine#1 %v, LogLine#2 %v", l1, l2)
 	}
 
 }
 
-func TestWriter(test *testing.T) {
-
+func TestWrite(t *testing.T) {
 	var b bytes.Buffer
 
-	log.SetFlags(0)
-
-	log.SetOutput(&logfilter.Capture{
-		Flags:  log.Flags(),
-		Output: &b,
-	})
-
+	logfilter.SetOutput(&b)
+	logfilter.SetFlags(0)
 	log.Println("Trace: Message")
 
 	if string(b.Bytes()) != "Trace: Message\n" {
-		test.Errorf("Mismatch Sent:\"%s\" Received:\"%s\"\n", "Trace: Message", string(b.Bytes()))
+		t.Errorf("Mismatch Sent:\"%s\" Received:\"%s\"\n", "Trace: Message", string(b.Bytes()))
 	}
 
+	logfilter.SetOutput(os.Stderr)
+	logfilter.SetFlags(log.LstdFlags)
 }
 
-func TestWriterExclude(test *testing.T) {
-
+func TestFilter(t *testing.T) {
 	var b bytes.Buffer
 
-	log.SetFlags((log.Ldate | log.Ltime | log.Llongfile))
-
-	log.SetOutput(&logfilter.Capture{
-		Flags:  log.Flags(),
-		Output: &b,
-		Filters: []logfilter.Filter{
-			logfilter.Filter{
-				Mode:     logfilter.EXCLUDE,
-				Filename: "github.com/d2g/logfilter",
-				Level:    logfilter.TRACE,
-			},
-		},
-	})
+	logfilter.SetOutput(&b)
+	logfilter.SetFlags(0)
+	logfilter.Exclude("github.com/d2g/logfilter").When(logfilter.Trace)
 
 	//Trace Message Have Been Excluded
 	log.Println("Trace: Message")
@@ -195,34 +272,44 @@ func TestWriterExclude(test *testing.T) {
 	//But We should Still Get Debug Messages
 	log.Println("Debug: Message")
 
-	if string(b.Bytes())[len(string(b.Bytes()))-15:] != "Debug: Message\n" {
-		test.Errorf("Mismatch Sent:\"%s\" Received:\"%s\"\n", "Debug: Message", string(b.Bytes())[len(string(b.Bytes()))-15:])
+	if string(b.Bytes()) != "Debug: Message\n" {
+		t.Errorf("Mismatch Sent:\"%s\" Received:\"%s\"\n", "Debug: Message", string(b.Bytes()))
 	}
 
+	//Reset the filter for the next test.
+	logfilter.StdFilterReset()
 }
 
-func TestWriterExcludeInclude(test *testing.T) {
-
+func TestFilterDefault(t *testing.T) {
 	var b bytes.Buffer
 
-	log.SetFlags((log.Ldate | log.Ltime | log.Llongfile))
+	logfilter.SetOutput(&b)
+	logfilter.SetFlags(0)
+	logfilter.Default(logfilter.Error)
 
-	log.SetOutput(&logfilter.Capture{
-		Flags:  log.Flags(),
-		Output: &b,
-		Filters: []logfilter.Filter{
-			logfilter.Filter{
-				Mode:     logfilter.EXCLUDE,
-				Filename: "github.com/d2g/",
-				Level:    logfilter.FATAL,
-			},
-			logfilter.Filter{
-				Mode:     logfilter.INCLUDE,
-				Filename: "github.com/d2g/logfilter",
-				Level:    logfilter.DEBUG,
-			},
-		},
-	})
+	//Trace Message Have Been Excluded
+	log.Println("Warning: Message")
+
+	//But We should Still Get Debug Messages
+	log.Println("Error: Message")
+
+	if string(b.Bytes()) != "Error: Message\n" {
+		t.Errorf("Mismatch Sent:\"%s\" Received:\"%s\"\n", "Error: Message", string(b.Bytes()))
+	}
+	logfilter.Default(logfilter.Undefined)
+
+	//Reset the filter for the next test.
+	logfilter.StdFilterReset()
+}
+
+func TestFilterExcludeInclude(t *testing.T) {
+	var b bytes.Buffer
+
+	logfilter.SetOutput(&b)
+	logfilter.SetFlags(0)
+	logfilter.Exclude("github.com/d2g").When(logfilter.Fatal)
+	logfilter.Include("github.com/d2g/logfilter").When(logfilter.Debug)
+	logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Debug)
 
 	//Trace Message Have Been Excluded
 	log.Println("Trace: Message")
@@ -230,137 +317,82 @@ func TestWriterExcludeInclude(test *testing.T) {
 	//But We should Still Get Debug Messages
 	log.Println("Debug: Message")
 
-	if string(b.Bytes())[len(string(b.Bytes()))-15:] != "Debug: Message\n" {
-		test.Errorf("Mismatch Sent:\"%s\" Received:\"%s\"\n", "Debug: Message", string(b.Bytes())[len(string(b.Bytes()))-15:])
+	if string(b.Bytes()) != "Debug: Message\n" {
+		t.Errorf("Mismatch Sent:\"%s\" Received:\"%s\"\n", "Debug: Message", string(b.Bytes()))
 	}
 
+	//If we update an existing filter
+	logfilter.Exclude("github.com/d2g/logfilter").When(logfilter.Debug)
+
+	b.Reset()
+
+	log.Println("Debug: Message")
+
+	if string(b.Bytes()) != "" {
+		t.Errorf("Mismatch Expected:\"%s\" Actual:\"%s\"\n", "", string(b.Bytes()))
+	}
+
+	//Reset the filter for the next test.
+	logfilter.StdFilterReset()
 }
 
-func TestLineEquals(test *testing.T) {
-	e1 := logfilter.Line{}
-	e2 := logfilter.Line{}
+// Example from documentation
+func ExampleLogfilterDocumantation() {
+	//Remove date time to make testing simpler.
+	logfilter.SetFlags(log.Lshortfile)
 
-	t, _ := time.Parse("2006/01/02 15:04:05", "2014/10/03 14:45:45")
+	//Set the Output to stdout for the example test.
+	logfilter.SetOutput(os.Stdout)
 
-	e2.Timestamp = t
-	if e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
-	e2.Timestamp = time.Time{}
+	// Change the default filter to warning and above.
+	logfilter.Default(logfilter.Warning)
 
-	if !e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
+	// I want to debug an issue in a particular package so want logging from that package.
+	logfilter.Include("github.com/d2g/logfilter/dummy")
 
-	e2.FileAndLine = "Y"
+	// However at this stage I want only Info and above.
+	logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Info)
 
-	if e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
-
-	e2.FileAndLine = ""
-
-	if !e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
-
-	e2.Message = "Y"
-
-	if e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
-
-	e2.Message = ""
-
-	if !e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
-
-	e2.Level = logfilter.INFO
-
-	if e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
-
-	e2.Level = 0
-
-	if !e1.Equal(e2) {
-		test.Errorf("Equals Failed")
-	}
-
-}
-
-func TestWriteToOSStderr(t *testing.T) {
-	example := logfilter.Capture{}
-	message := "Debug: Message\n"
-
-	output, err := captureStandardErr(func() {
-		n, err := example.Write([]byte(message))
-		if err != nil {
-			t.Errorf("Write Failed")
-		}
-
-		if n != len([]byte("Debug: Message\n")) {
-			t.Errorf("Write Failed, Incorrect Length")
-		}
-	})
-
-	if err != nil {
-		t.Errorf("Error Capturing StandardErr %v\n", err)
-	}
-
-	if output != message {
-		t.Errorf("StandardErr expect %s got %s\n", message, output)
-	}
-}
-
-//Examples
-func ExampleCapture() {
-
-	// Set our filters, log.Llongfile is important here or we don't get the filename
-	// to filter on.
-	log.SetFlags(log.Llongfile | log.Ldate | log.Ltime)
-
-	// Setup our log filter.
-	log.SetOutput(&logfilter.Capture{
-		Flags: log.Flags(),
-		Filters: []logfilter.Filter{
-			logfilter.Filter{ // Exclude all our messages
-				Mode:     logfilter.EXCLUDE,
-				Filename: "github.com/d2g/logfilter",
-				Level:    logfilter.FATAL,
-			},
-			logfilter.Filter{ // Include Fatal Messages Only
-				Mode:     logfilter.INCLUDE,
-				Filename: "github.com/d2g/logfilter/dummy",
-				Level:    logfilter.WARNING,
-			},
-		},
-		Output: os.Stdout,
-		Formatter: func(l *logfilter.Line) []byte {
-			t := template.Must(template.New("format").Parse(`{{.Message}}`))
-			b := bytes.NewBuffer([]byte{})
-			err := t.Execute(b, *l)
-			if err != nil {
-				panic("Panic Template Error:" + err.Error())
-			}
-
-			return b.Bytes()
-		},
-	})
-
-	dummy.Fatal()   // Create a dummy message.
-	dummy.Error()   // Create a dummy Error message.
-	dummy.Warning() // Create a dummy Warning message.
-	dummy.Info()    // Create a dummy Info message that should be ignored.
-	dummy.Debug()   // Create a dummy degub message that should be ignored.
-	dummy.Trace()   // Create a dummy trace message that should be ignored.
-
-	dummy.Unformatted() //Unformatted messages appear as trace messages.
+	// Now only log level Warning and above will be written
+	// Except for github.com/d2g/dummy which wil have Info and above.
+	log.Println("Debug: Not Displayed")
+	dummy.Debug()
+	dummy.Info()
 
 	//Output:
-	//This is a Fatal message
-	//This is a Error message
-	//This is a Warning message
-	//Some package that doesn't implement the convention.
+	//dummy.go:17: Info: This is a Info message
+
+	//Reset the filter for the next test.
+	logfilter.StdFilterReset()
+}
+
+func ExampleLogfilter() {
+
+	// Set the log output to just the short filename so the output doesn't contain the date time which changes each test.
+	logfilter.SetFlags(log.Lshortfile)
+
+	//Output to std out for testing
+	logfilter.SetOutput(os.Stdout)
+
+	// Don't output any messages Fatal or Lower from the package or subpackages github.com/d2g/logfilter.
+	logfilter.Exclude("github.com/d2g/logfilter").When(logfilter.Fatal)
+
+	// Output any messages Warning or Above from the package or subpackages github.com/d2g/logfilter/dummy.
+	logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Warning)
+
+	dummy.Fatal()       // Create a dummy message.
+	dummy.Error()       // Create a dummy Error message.
+	dummy.Warning()     // Create a dummy Warning message.
+	dummy.Info()        // Create a dummy Info message that should be ignored.
+	dummy.Debug()       // Create a dummy degub message that should be ignored.
+	dummy.Trace()       // Create a dummy trace message that should be ignored.
+	dummy.Unformatted() //Unformatted messages appear as trace messages that should be ignored.
+
+	//Output:
+	//dummy.go:29: Fatal: This is a Fatal message
+	//dummy.go:25: Error: This is a Error message
+	//dummy.go:21: Warning: This is a Warning message
+
+	//Reset the filter for the next test.
+	logfilter.StdFilterReset()
 }
