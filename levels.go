@@ -21,7 +21,7 @@ const (
 	Off
 )
 
-// StringToLevel converts a string log level (i.e. "Error") to the coresponding Level (i.e. Error).
+// StringToLevel converts a string log level (i.e. "Error") to the corresponding Level (i.e. Error).
 func StringToLevel(sl string) Level {
 	switch strings.ToLower(sl) {
 	case "trace":
@@ -42,7 +42,7 @@ func StringToLevel(sl string) Level {
 	return Undefined
 }
 
-// LevelToString converts a Level (i.e. Error) to the coresponding string version (i.e. "Error").
+// LevelToString converts a Level (i.e. Error) to the corresponding string version (i.e. "Error").
 func LevelToString(l Level) string {
 	switch l {
 	case Trace:

@@ -24,8 +24,9 @@ log.Println("Trace:Example Message")
 is a trace level message.
 
 When logging at trace level it's usual to be very verbose which results in a
-large ammount of output. Writing this sort of information to a log file can
-result in reduce performance (i.e. due to disk IO).
+large amount of output. Filtering this information down can result in it being
+easier to debug issues and system requirements while producing logging
+information(i.e. Disk IO).
 
 Logfilter allows you to filter this output based on the package/file location
 and the log level type.
@@ -46,7 +47,7 @@ messages:
 		logfilter.SetFlags(log.Lshortfile)
 
 		//Set the Output to stdout for the example test.
-		//By defult this is os.Stderr so you wouldn't usually need this line.
+		//By default this is os.Stderr so you wouldn't usually need this line.
 		logfilter.SetOutput(os.Stdout)
 
 		// Change the default filter to warning and above.

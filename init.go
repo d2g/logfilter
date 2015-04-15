@@ -10,7 +10,7 @@ var std *Logger
 var stdFilters filters
 
 func init() {
-	// Setup logging the way we expect to receive log mesages
+	// Setup logging the way we expect to receive log messages
 	log.SetFlags(log.Llongfile | log.Ldate | log.Ltime)
 	// Remove the prefix.
 	log.SetPrefix("")

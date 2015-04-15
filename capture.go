@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-//Format is the func type reqired for formatting the
+//Format is the func type required for formatting the
 //output of log messages.It allows messages logged in one packages as
 //`Level: Message` to be output as `[Level] Message`.
 type Format func(string, *LogLine, int) []byte
@@ -121,8 +121,8 @@ func SqrFormat(prefix string, l *LogLine, f int) []byte {
 	return b
 }
 
-//The Parser func type allows you to add aditional logging conventions to
-//interperate different conventions.
+//The Parser func type allows you to add additional logging conventions to
+//interpret different conventions.
 type Parser func(string) (Level, string)
 
 //StdParser is the standard convention parser
@@ -130,7 +130,7 @@ type Parser func(string) (Level, string)
 func StdParser(m string) (Level, string) {
 	c := strings.Index(m, ":")
 
-	// Our Smallest possible level is Info so if it's less than 3 it's not following the standard convension.
+	// Our Smallest possible level is Info so if it's less than 3 it's not following the standard convention.
 	if c > 3 {
 		ls := m[:c]
 		r := m[c+1:]
@@ -218,7 +218,7 @@ func (l *Logger) SetFlags(f int) {
 	l.flag = f
 }
 
-//Output returnes the output io.writer of the std logger.
+//Output returns the output io.writer of the std logger.
 func Output() io.Writer {
 	return std.Output()
 }

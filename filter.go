@@ -30,7 +30,7 @@ func findFilter(pkg string) *filter {
 	return nil
 }
 
-//Include adds filter object(s) to the stdandard filter and returns pointers to
+//Include adds filter object(s) to the standard filter and returns pointers to
 //the newly created object to allow you to set the required level. As default it
 //sets the level to undefined (i.e. lowest).
 func Include(packagenames ...string) filters {
@@ -56,7 +56,7 @@ func Include(packagenames ...string) filters {
 	return n
 }
 
-//Exclude adds filter object(s) to the stdandard filter and returns pointers to
+//Exclude adds filter object(s) to the standard filter and returns pointers to
 //the newly created object to allow you to set the required level. As default it
 //sets the level to off (i.e. highest).
 func Exclude(packagenames ...string) filters {
