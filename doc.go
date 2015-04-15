@@ -33,40 +33,40 @@ and the log level type.
 For example in your live application you may only want to output warning
 messages:
 
-import(
-	"log"
-	"github.com/d2g/logfilter"
-	"github.com/d2g/logfilter/dummy"
-)
+	import(
+		"log"
+		"github.com/d2g/logfilter"
+		"github.com/d2g/logfilter/dummy"
+	)
 
 
-func main() {
-	//Remove date time to make testing simpler.
-	//I doubt you would want to use this usually.
-	logfilter.SetFlags(log.Lshortfile)
+	func main() {
+		//Remove date time to make testing simpler.
+		//I doubt you would want to use this usually.
+		logfilter.SetFlags(log.Lshortfile)
 
-	//Set the Output to stdout for the example test.
-	//By defult this is os.Stderr so you wouldn't usually need this line.
-	logfilter.SetOutput(os.Stdout)
+		//Set the Output to stdout for the example test.
+		//By defult this is os.Stderr so you wouldn't usually need this line.
+		logfilter.SetOutput(os.Stdout)
 
-	// Change the default filter to warning and above.
-	logfilter.Default(logfilter.Warning)
+		// Change the default filter to warning and above.
+		logfilter.Default(logfilter.Warning)
 
-	// I want to debug an issue in a particular package so want logging from that package.
-	logfilter.Include("github.com/d2g/logfilter/dummy")
+		// I want to debug an issue in a particular package so want logging from that package.
+		logfilter.Include("github.com/d2g/logfilter/dummy")
 
-	// However at this stage I want only Info and above.
-	logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Info)
+		// However at this stage I want only Info and above.
+		logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Info)
 
-	// Now only log level Warning and above will be written
-	// Except for github.com/d2g/dummy which wil have Info and above.
-	log.Println("Debug: Not Displayed")
-	dummy.Debug()
-	dummy.Info()
+		// Now only log level Warning and above will be written
+		// Except for github.com/d2g/dummy which wil have Info and above.
+		log.Println("Debug: Not Displayed")
+		dummy.Debug()
+		dummy.Info()
 
-	//Output:
-	//dummy.go:17: Info: This is a Info message
-}
+		//Output:
+		//dummy.go:17: Info: This is a Info message
+	}
 
 */
 package logfilter
