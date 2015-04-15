@@ -76,7 +76,7 @@ func TestStringToLogLine(t *testing.T) {
 		l.Line != 23 &&
 		l.Message != "debug: message" &&
 		l.Timestamp.Format("2006/01/02 15:04:05.999999") != "2009/01/23 01:23:23.123123" {
-		t.Errorf("Expected 2009/01/23 01:23:23.123123 /a/b/c/d.go:23: debug: message actual %s %s:%s: %s", l.Timestamp.Format("2006/01/02 15:04:05.999999"), l.File, l.Line, l.Message)
+		t.Errorf("Expected 2009/01/23 01:23:23.123123 /a/b/c/d.go:23: debug: message actual %s %s:%d: %s", l.Timestamp.Format("2006/01/02 15:04:05.999999"), l.File, l.Line, l.Message)
 	}
 }
 
@@ -129,7 +129,7 @@ func TestNew(t *testing.T) {
 	}
 
 	if l.Prefix() != p {
-		t.Errorf("Invalid Prefix expected %d, actual %d", p, l.Prefix())
+		t.Errorf("Invalid Prefix expected %s, actual %s", p, l.Prefix())
 	}
 
 	if l.Flags() != log.Ldate {
@@ -208,40 +208,10 @@ func TestFormatter(t *testing.T) {
 	logfilter.SetFormatter(f)
 	b := logfilter.Formatter()("", &logfilter.LogLine{}, 0)
 	if !bytes.Equal(b, []byte("TEST")) {
-		t.Errorf("Error setting formatter function expected %s, actual %t", "TEST", string(b))
+		t.Errorf("Error setting formatter function expected %s, actual %s", "TEST", string(b))
 	}
 
 	logfilter.SetFormatter(cf)
-}
-
-func TestEqual(t *testing.T) {
-	n := time.Now()
-
-	l1 := logfilter.LogLine{
-		Timestamp: n,
-		File:      "file",
-		Line:      0,
-		Message:   "message",
-		Level:     logfilter.Undefined,
-	}
-
-	l2 := logfilter.LogLine{
-		Timestamp: n,
-		File:      "file",
-		Line:      0,
-		Message:   "message",
-		Level:     logfilter.Undefined,
-	}
-
-	if !l1.Equal(l2) {
-		t.Errorf("Error comparing equal lines not equal LogLine#1 %v, LogLine#2 %v", l1, l2)
-	}
-
-	l2.Message = "not equal"
-	if l1.Equal(l2) {
-		t.Errorf("Error comparing non equal lines equal LogLine#1 %v, LogLine#2 %v", l1, l2)
-	}
-
 }
 
 func TestWrite(t *testing.T) {

@@ -1,5 +1,5 @@
 /*
-Package d2g/logfilter implements a filter on the standard log package.
+Package logfilter implements a filter on the standard log package.
 
 Like most alternative logging packages using this package support the semi
 standard logging levels like:

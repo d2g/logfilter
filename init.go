@@ -25,6 +25,6 @@ func init() {
 	// Set the output of the standard log package to our logger.
 	log.SetOutput(std)
 
-	//
+	//Reset the Standard Filter.
 	StdFilterReset()
 }

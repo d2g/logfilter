@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Logging Level represented as an int value.
+// Level represents a logging level.
 type Level int
 
 // Standard(ish) Logging Levels.
@@ -21,7 +21,7 @@ const (
 	Off
 )
 
-// Convert a string log level (i.e. "Error") to the coresponding Level (i.e. Error).
+// StringToLevel converts a string log level (i.e. "Error") to the coresponding Level (i.e. Error).
 func StringToLevel(sl string) Level {
 	switch strings.ToLower(sl) {
 	case "trace":
@@ -42,7 +42,7 @@ func StringToLevel(sl string) Level {
 	return Undefined
 }
 
-// Convert a Level (i.e. Error) to the coresponding string version (i.e. "Error").
+// LevelToString converts a Level (i.e. Error) to the coresponding string version (i.e. "Error").
 func LevelToString(l Level) string {
 	switch l {
 	case Trace:
@@ -63,7 +63,7 @@ func LevelToString(l Level) string {
 	return "Undefined"
 }
 
-// Convert the default log sting sent to the LogLine type.
+// StringToLogLine converts the default log sting sent to the LogLine type.
 func StringToLogLine(m string) LogLine {
 	l := LogLine{}
 	l.Message = m
