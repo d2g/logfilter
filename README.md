@@ -57,7 +57,7 @@ messages:
 		logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Info)
 	
 		// Now only log level Warning and above will be written
-		// Except for github.com/d2g/dummy which wil have Info and above.
+		// Except for github.com/d2g/dummy which will have Info and above.
 		log.Println("Debug: Not Displayed")
 		dummy.Debug()
 		dummy.Info()
