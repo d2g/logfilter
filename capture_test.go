@@ -306,6 +306,34 @@ func TestFilterExcludeInclude(t *testing.T) {
 	logfilter.StdFilterReset()
 }
 
+func TestFilterIncludeInclude(t *testing.T) {
+	var b bytes.Buffer
+
+	logfilter.SetOutput(&b)
+	logfilter.SetFlags(0)
+
+	logfilter.Include("github.com/d2g")
+	//Trace Message Included
+	log.Println("Trace: Message")
+
+	logfilter.Exclude("github.com/d2g")
+
+	//Trace Message Have Been Excluded
+	log.Println("Trace: Message")
+
+	logfilter.Include("github.com/d2g").When(logfilter.Debug)
+
+	//Trace Message Have Been Excluded
+	log.Println("Trace: Message")
+
+	if string(b.Bytes()) != "Trace: Message\nTrace: Message\n" {
+		t.Errorf("Mismatch Expected:\n%s Received:\n%s\n", "Trace: Message\nTrace: Message\n", string(b.Bytes()))
+	}
+
+	//Reset the filter for the next test.
+	logfilter.StdFilterReset()
+}
+
 // Example from documentation
 func ExampleLogfilterDocumantation() {
 	//Remove date time to make testing simpler.
