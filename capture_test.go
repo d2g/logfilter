@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/d2g/logfilter"
-	"github.com/d2g/logfilter/dummy"
 )
 
 func TestStringToLevel(t *testing.T) {
@@ -329,67 +328,6 @@ func TestFilterIncludeInclude(t *testing.T) {
 	if string(b.Bytes()) != "Trace: Message\nTrace: Message\n" {
 		t.Errorf("Mismatch Expected:\n%s Received:\n%s\n", "Trace: Message\nTrace: Message\n", string(b.Bytes()))
 	}
-
-	//Reset the filter for the next test.
-	logfilter.StdFilterReset()
-}
-
-// Example from documentation
-func ExampleLogfilterDocumantation() {
-	//Remove date time to make testing simpler.
-	logfilter.SetFlags(log.Lshortfile)
-
-	//Set the Output to stdout for the example test.
-	logfilter.SetOutput(os.Stdout)
-
-	// Change the default filter to warning and above.
-	logfilter.Default(logfilter.Warning)
-
-	// I want to debug an issue in a particular package so want logging from that package.
-	logfilter.Include("github.com/d2g/logfilter/dummy")
-
-	// However at this stage I want only Info and above.
-	logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Info)
-
-	// Now only log level Warning and above will be written
-	// Except for github.com/d2g/dummy which wil have Info and above.
-	log.Println("Debug: Not Displayed")
-	dummy.Debug()
-	dummy.Info()
-
-	//Output:
-	//dummy.go:17: Info: This is a Info message
-
-	//Reset the filter for the next test.
-	logfilter.StdFilterReset()
-}
-
-func ExampleLogfilter() {
-
-	// Set the log output to just the short filename so the output doesn't contain the date time which changes each test.
-	logfilter.SetFlags(log.Lshortfile)
-
-	//Output to std out for testing
-	logfilter.SetOutput(os.Stdout)
-
-	// Don't output any messages Fatal or Lower from the package or subpackages github.com/d2g/logfilter.
-	logfilter.Exclude("github.com/d2g/logfilter").When(logfilter.Fatal)
-
-	// Output any messages Warning or Above from the package or subpackages github.com/d2g/logfilter/dummy.
-	logfilter.Include("github.com/d2g/logfilter/dummy").When(logfilter.Warning)
-
-	dummy.Fatal()       // Create a dummy message.
-	dummy.Error()       // Create a dummy Error message.
-	dummy.Warning()     // Create a dummy Warning message.
-	dummy.Info()        // Create a dummy Info message that should be ignored.
-	dummy.Debug()       // Create a dummy degub message that should be ignored.
-	dummy.Trace()       // Create a dummy trace message that should be ignored.
-	dummy.Unformatted() //Unformatted messages appear as trace messages that should be ignored.
-
-	//Output:
-	//dummy.go:29: Fatal: This is a Fatal message
-	//dummy.go:25: Error: This is a Error message
-	//dummy.go:21: Warning: This is a Warning message
 
 	//Reset the filter for the next test.
 	logfilter.StdFilterReset()
